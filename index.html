@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Оплата звёздами ⭐</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <h1>Оплата звёздами ⭐</h1>
+    <button id="payButton">Оплатить</button>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        const user = tg.initDataUnsafe?.user;
+        const user_id = user?.id;
+
+        // Читаем параметры из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const id_plan = urlParams.get('id_plan');
+        const count = urlParams.get('count');
+        const price = urlParams.get('price');
+        const token = urlParams.get('token');
+
+        async function payStars() {
+            if (!user_id) {
+                alert("Не определён пользователь");
+                return;
+            }
+
+            if (!id_plan || !count || !price || !token) {
+                alert("Некорректные параметры оплаты");
+                return;
+            }
+
+            try {
+                const resp = await fetch("https://your-server.example.com/create_invoice", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        user_id: user_id,
+                        id_plan: id_plan,
+                        count: count,
+                        price: price,
+                        token: token
+                    })
+                });
+
+                const data = await resp.json();
+
+                if (data.error) {
+                    alert("Ошибка: " + data.error);
+                    return;
+                }
+
+                // Открываем Telegram Invoice
+                tg.openInvoice(data.invoice_url, "url");
+
+            } catch (e) {
+                alert("Ошибка сети: " + e.message);
+            }
+        }
+
+        // Привязываем кнопку
+        document.getElementById('payButton').addEventListener('click', payStars);
+    </script>
+</body>
+</html>
