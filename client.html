@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Оплата звёздами ⭐</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #333;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 2rem;
+            color: #ff9800;
+        }
+
+        .invoice-details {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .invoice-details p {
+            margin: 8px 0;
+            font-size: 1.1rem;
+        }
+
+        button {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            background-color: #ff9800;
+            border: none;
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        button:hover {
+            background-color: #e68900;
+            transform: translateY(-2px);
+        }
+
+        .alert {
+            margin-top: 15px;
+            color: red;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Оплата звёздами ⭐</h1>
+
+    <div class="invoice-details">
+        <p><strong>План:</strong> <span id="planName">–</span></p>
+        <p><strong>Количество звёзд:</strong> <span id="creditsCount">–</span></p>
+        <p><strong>Стоимость:</strong> <span id="priceAmount">–</span> XTR</p>
+    </div>
+
+    <button id="payButton">Оплатить</button>
+    <div id="alert" class="alert"></div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        const user = tg.initDataUnsafe?.user;
+        const user_id = user?.id;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const id_plan = urlParams.get('id_plan');
+        const count = urlParams.get('count');
+        const price = urlParams.get('price');
+        const token = urlParams.get('token');
+
+        const alertBox = document.getElementById('alert');
+        const planNameEl = document.getElementById('planName');
+        const creditsCountEl = document.getElementById('creditsCount');
+        const priceAmountEl = document.getElementById('priceAmount');
+
+        // Показываем детали заказа пользователю
+        planNameEl.textContent = id_plan || 'Не указан';
+        creditsCountEl.textContent = count || '0';
+        priceAmountEl.textContent = price || '0';
+
+        async function payStars() {
+            alertBox.textContent = '';
+
+            if (!user_id) {
+                alertBox.textContent = "Не определён пользователь";
+                return;
+            }
+            if (!id_plan || !count || !price || !token) {
+                alertBox.textContent = "Некорректные параметры оплаты";
+                return;
+            }
+
+            try {
+                const resp = await fetch(`${window.location.origin}/create_invoice`, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        user_id,
+                        id_plan,
+                        count,
+                        price,
+                        token
+                    })
+                });
+
+                const data = await resp.json();
+
+                if (data.error) {
+                    alertBox.textContent = "Ошибка: " + data.error;
+                    return;
+                }
+
+                tg.openInvoice(data.invoice_url, "url");
+
+            } catch (e) {
+                alertBox.textContent = "Ошибка сети: " + e.message;
+            }
+        }
+
+        document.getElementById('payButton').addEventListener('click', payStars);
+    </script>
+</body>
+</html>
